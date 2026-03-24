@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stun Slam Trainer</title>
+    <style>
+        body { background: #0f0f0f; color: #eee; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .wrapper { border: 2px dashed #444; padding: 30px; border-radius: 20px; background: #151515; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .row { display: flex; gap: 10px; margin: 15px 0; justify-content: center; }
+        .key { width: 60px; height: 60px; line-height: 60px; border: 2px solid #333; border-radius: 8px; font-weight: bold; text-align: center; background: #222; transition: 0.05s; color: #555; }
+        
+        /* Highlight States */
+        .pressed { background: #007bff; color: white; border-color: #00d4ff; transform: scale(0.95); }
+        .success { background: #28a745 !important; color: white; border-color: #34ce57; }
+        .fail { background: #dc3545 !important; color: white; border-color: #ff4d5e; }
+        
+        #display { font-size: 1.5em; margin: 20px 0; height: 40px; color: #ffcc00; }
+        .timing-info { color: #888; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <h2 style="margin-top:0">STUN SLAM TRAINER</h2>
+        <p>Tick 1: <strong>3 + LMB</strong> | Tick 2: <strong>C + LMB</strong></p>
+
+        <div class="row">
+            <div id="key-3" class="key">3</div>
+            <div id="click-1" class="key">LMB</div>
+            <div style="width: 20px;"></div>
+            <div id="key-c" class="key">C</div>
+            <div id="click-2" class="key">LMB</div>
+        </div>
+
+        <div id="display">READY...</div>
+        <div class="timing-info">Tick Gap: <span id="gap">0</span>ms</div>
+    </div>
+
+    <script>
+        let stage = 0; // 0: Start, 1: Tick1 Done, 2: Finished
+        let tick1Time = 0;
+        const TICK_MS = 50;
+
+        const el3 = document.getElementById('key-3');
+        const elC = document.getElementById('key-c');
+        const elL1 = document.getElementById('click-1');
+        const elL2 = document.getElementById('click-2');
+        const display = document.getElementById('display');
+        const gapDisplay = document.getElementById('gap');
+
+        window.addEventListener('keydown', (e) => {
+            const now = performance.now();
+            
+            // RESET on '1' or 'R'
+            if (e.key === 'r' || e.key === '1') reset();
+
+            // STEP 1: Key 3
+            if (e.key === '3' && stage === 0) {
+                el3.classList.add('pressed');
+            }
+
+            // STEP 3: Key C
+            if (e.key.toLowerCase() === 'c' && stage === 1) {
+                const gap = now - tick1Time;
+                gapDisplay.innerText = gap.toFixed(1);
+                elC.classList.add('pressed');
+
+                if (gap > TICK_MS) {
+                    fail("TOO SLOW BETWEEN TICKS");
+                }
+            }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            const now = performance.now();
+
+            // CLICK 1
+            if (stage === 0 && el3.classList.contains('pressed')) {
+                tick1Time = now;
+                stage = 1;
+                elL1.classList.add('success');
+                display.innerText = "NEXT TICK!";
+            } 
+            // CLICK 2
+            else if (stage === 1 && elC.classList.contains('pressed')) {
+                const gap = now - tick1Time;
+                gapDisplay.innerText = gap.toFixed(1);
+                
+                if (gap <= TICK_MS) {
+                    success();
+                } else {
+                    fail("CLICK WAS OUTSIDE TICK");
+                }
+                stage = 2;
+            }
+        });
+
+        function success() {
+            elC.classList.add('success');
+            elL2.classList.add('success');
+            display.innerText = "CLEAN SLAM!";
+            display.style.color = "#28a745";
+        }
+
+        function fail(msg) {
+            display.innerText = msg;
+            display.style.color = "#dc3545";
+            elL2.classList.add('fail');
+            stage = 2;
+        }
+
+        function reset() {
+            stage = 0; tick1Time = 0;
+            [el3, elC, elL1, elL2].forEach(el => el.className = 'key');
+            display.innerText = "READY...";
+            display.style.color = "#ffcc00";
+            gapDisplay.innerText = "0";
+        }
+    </script>
+</body>
+</html>
